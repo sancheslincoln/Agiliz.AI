@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EcoSynergy | Gestor de Despesas</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js"></script>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <header class="app-header no-print">
+        <div class="brand">
+            <div class="logo-icon"><i class="ph-fill ph-plant"></i></div>
+            <div class="brand-text">
+                <h1>EcoSynergy</h1>
+                <span class="badge">PRO</span>
+            </div>
+        </div>
+        
+        <div class="header-actions">
+            <div id="home-actions">
+                <input type="file" id="backup-input" accept=".json" hidden onchange="restaurarBackup(this)">
+                <button class="btn btn-ghost" onclick="document.getElementById('backup-input').click()" title="Restaurar de arquivo">
+                    <i class="ph ph-upload-simple"></i> Restaurar
+                </button>
+                <button class="btn btn-ghost" onclick="fazerBackup()" title="Baixar backup">
+                    <i class="ph ph-download-simple"></i> Backup
+                </button>
+                <button class="btn btn-primary" onclick="criarNovoRelatorio()">
+                    <i class="ph ph-plus-circle"></i> Novo Relatório
+                </button>
+            </div>
+
+            <div id="editor-actions" class="hidden">
+                <button class="btn btn-secondary" onclick="voltarParaHome()">
+                    <i class="ph ph-arrow-left"></i> Voltar à Lista
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main class="container">
+
+        <section id="view-dashboard">
+            <div class="dashboard-header">
+                <h2>Meus Relatórios</h2>
+                <div class="search-bar">
+                    <i class="ph ph-magnifying-glass"></i>
+                    <input type="text" placeholder="Buscar relatórios..." oninput="filtrarRelatorios(this.value)">
+                </div>
+            </div>
+
+            <div id="reports-grid" class="reports-grid">
+                </div>
+
+            <div id="empty-state" class="empty-state hidden">
+                <div class="empty-icon"><i class="ph ph-folder-dashed"></i></div>
+                <h3>Nenhum relatório encontrado</h3>
+                <p>Crie um novo relatório ou importe um backup para começar.</p>
+                <button class="btn btn-primary" onclick="criarNovoRelatorio()">Começar Agora</button>
+            </div>
+        </section>
+
+        <section id="view-editor" class="hidden">
+            
+            <div class="editor-header no-print">
+                <div class="title-input-wrapper">
+                    <label>Título do Documento</label>
+                    <input type="text" id="doc-title" placeholder="Ex: Viagem Altamira - FEV/2026" oninput="autoSave()">
+                </div>
+                <div class="editor-stats">
+                    <div class="stat-pill">
+                        <span class="label">Total</span>
+                        <span class="value" id="header-total">R$ 0,00</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="upload-area no-print" id="drop-zone">
+                <div class="upload-content">
+                    <div class="icon-circle"><i class="ph ph-file-pdf"></i></div>
+                    <div class="text-content">
+                        <h3>Importação Inteligente</h3>
+                        <p>Arraste seu PDF aqui para preenchimento automático.</p>
+                    </div>
+                    <label for="pdf-upload" class="btn btn-outline">Selecionar PDF</label>
+                    <input type="file" id="pdf-upload" accept="application/pdf" hidden onchange="importarPDF(this)">
+                </div>
+            </div>
+
+            <form id="expense-form">
+                <div class="paper-sheet">
+                    <div class="print-header show-print">
+                        <h2>Prestação de Contas</h2>
+                        <h3 id="print-title-display">Sem Título</h3>
+                    </div>
+
+                    <div class="section-block">
+                        <div class="section-title"><i class="ph ph-info"></i> Informações do Projeto</div>
+                        <div class="form-grid">
+                            <div class="input-group full">
+                                <label>Projeto / Finalidade</label>
+                                <input type="text" id="tipo" oninput="autoSave()">
+                            </div>
+                            <div class="input-group"><label>Colaborador</label><input type="text" id="colaborador" oninput="autoSave()"></div>
+                            <div class="input-group"><label>Empresa</label><input type="text" id="empresa" oninput="autoSave()"></div>
+                            <div class="input-group"><label>Data Inicial</label><input type="date" id="data-inicial" oninput="autoSave()"></div>
+                            <div class="input-group"><label>Data Final</label><input type="date" id="data-final" oninput="autoSave()"></div>
+                        </div>
+                    </div>
+
+                    <div class="section-block">
+                        <div class="section-title">
+                            <span><i class="ph ph-receipt"></i> Despesas</span>
+                            <span class="section-action no-print" onclick="adicionarLinha()"><i class="ph ph-plus"></i> Adicionar</span>
+                        </div>
+                        <div class="table-wrapper">
+                            <table class="expense-table">
+                                <thead>
+                                    <tr>
+                                        <th width="5%">#</th>
+                                        <th>Descrição</th>
+                                        <th width="15%">Categoria</th>
+                                        <th width="8%">Qtd</th>
+                                        <th width="12%">Unit.</th>
+                                        <th width="12%">Total</th>
+                                        <th width="5%" class="no-print"></th>
+                                    </tr>
+                                </thead>
+                                <tbody id="table-body">
+                                    </tbody>
+                                <tfoot>
+                                    <tr class="total-row">
+                                        <td colspan="5">TOTAL A REEMBOLSAR</td>
+                                        <td colspan="2" id="footer-total">R$ 0,00</td>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div class="notes-grid">
+                        <div class="note-box">
+                            <label>Reembolsos / Adiantamentos</label>
+                            <textarea id="reembolsos" oninput="autoSave()"></textarea>
+                        </div>
+                        <div class="note-box">
+                            <label>Observações Técnicas</label>
+                            <textarea id="obs" oninput="autoSave()"></textarea>
+                        </div>
+                    </div>
+
+                    <div class="signature-block">
+                        <div class="input-group">
+                            <label>Aprovado por</label>
+                            <input type="text" id="aprovador" oninput="autoSave()">
+                        </div>
+                        <div class="input-group">
+                            <label>Data</label>
+                            <input type="date" id="data-aprovacao" oninput="autoSave()">
+                        </div>
+                    </div>
+                </div>
+            </form>
+
+            <div class="fab-bar no-print">
+                <button class="btn btn-danger-ghost" onclick="deletarRelatorio()">
+                    <i class="ph ph-trash"></i> Excluir
+                </button>
+                <div class="divider"></div>
+                <button class="btn btn-primary" onclick="window.print()">
+                    <i class="ph ph-printer"></i> Imprimir / Salvar PDF
+                </button>
+            </div>
+
+        </section>
+    </main>
+
+    <div id="toast" class="toast">Ação realizada!</div>
+
+    <script src="script.js"></script>
+</body>
+</html>
